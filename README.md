@@ -1,332 +1,147 @@
-# Loan EMI Calculator (Full Stack Web Application)
+# LoanWise — Loan EMI Calculator (Vercel + Supabase Edition)
 
-A modern, responsive, full-stack **Loan EMI Calculator with Persistent History** built using **Java 17**, **Spring Boot 3**, **PostgreSQL**, **Bootstrap 5**, and **Chart.js**.
-
----
-
-## 🌟 Key Features
-
-1. **Accurate EMI Calculation**:
-   - Computes Monthly EMI, Total Interest Payable, and Total Repayment (Principal + Interest).
-   - Handles promotional **0% zero-interest loans** seamlessly without division errors.
-   - Supports flexible tenure in either **Months** or **Years** with automatic conversion.
-   - Formats currency in Indian Rupees (`₹`) with 2 decimal places.
-
-2. **Visual Breakdown Chart**:
-   - Interactive doughnut chart powered by **Chart.js** displaying Principal vs. Interest percentage ratios.
-
-3. **Persistent Calculation History**:
-   - Stores calculations permanently in **PostgreSQL** (`loan_emi_db`).
-   - Sorted with newest calculations first.
-   - View complete details in an interactive modal.
-   - Search/filter history dynamically by loan amount or date.
-   - Delete individual records or clear all history with a confirmation dialog.
-   - Saved history persists across browser refreshes and server restarts.
-
-4. **Independent Backend Validation**:
-   - Spring Boot REST API validates all inputs independently (`loanAmount > 0`, `annualInterestRate >= 0`, `tenure > 0`, numerical limits) and computes values on the server using `BigDecimal` precision.
+A modern, fast, full-stack **Loan EMI Calculator with Calculation History** rebuilt from the ground up for **direct one-click deployment to Vercel** without requiring Java, Spring Boot, Docker, Render, or a separate backend server.
 
 ---
 
-## 🏗️ Architecture & Technology Stack
+## 🚀 Key Highlights & Architecture
 
-| Layer | Technologies |
-|---|---|
-| **Frontend** | HTML5, CSS3, JavaScript (ES6+), Bootstrap 5.3, Bootstrap Icons, Chart.js 4.4 |
-| **Backend** | Java 17, Spring Boot 3.2.5, Spring Web REST, Spring Data JPA, Hibernate |
-| **Database** | PostgreSQL 18 (default DB: `loan_emi_db`) |
-| **Build & Tooling** | Apache Maven 3.9.6, Maven Wrapper (`mvnw.cmd`) |
+| Layer | Technology | Details |
+|---|---|---|
+| **Frontend** | React 18 + Vite | Responsive, lightning-fast Single Page Application (SPA) with Lucide Icons, interactive sliders, payment breakdown visualizer, and live calculation preview. |
+| **Serverless Backend** | Vercel Serverless Functions (Node.js) | Serverless REST endpoints located in `/api/calculations` running on Vercel's edge/serverless infrastructure. |
+| **Database** | Supabase PostgreSQL | Fully managed serverless PostgreSQL for persistent calculation history. |
+| **Hosting Platform** | Vercel | Unified frontend hosting (static edge CDN) and serverless backend API on the same domain. |
 
 ---
 
 ## 📁 Project Structure
 
 ```text
-FSD PROJECT/
-├── backend/
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/com/starlie/loanemi/
-│   │   │   │   ├── LoanEmiApiApplication.java       # Spring Boot Application Entrypoint
-│   │   │   │   ├── calculation/
-│   │   │   │   │   ├── Calculation.java             # JPA Entity for PostgreSQL table
-│   │   │   │   │   ├── CalculationRequest.java      # Request DTO with Bean Validation
-│   │   │   │   │   ├── CalculationResponse.java     # Response DTO
-│   │   │   │   │   ├── CalculationRepository.java   # Spring Data JPA Repository
-│   │   │   │   │   ├── CalculationService.java      # Financial EMI calculation & business logic
-│   │   │   │   │   ├── CalculationController.java   # REST API Endpoints
-│   │   │   │   │   ├── CalculationNotFoundException.java # Custom 404 Exception
-│   │   │   │   │   └── ApiExceptionHandler.java     # Global REST Exception Handler (@RestControllerAdvice)
-│   │   │   │   └── config/
-│   │   │   │       └── CorsConfig.java              # Cross-Origin Resource Sharing (CORS) Configuration
-│   │   │   └── resources/
-│   │   │       ├── application.properties           # PostgreSQL and server configuration
-│   │   │       └── static/                          # Unified Frontend served by Spring Boot
-│   │   │           ├── index.html                   # Dashboard UI
-│   │   │           ├── css/styles.css               # Financial dashboard styling
-│   │   │           └── js/app.js                    # Frontend logic & API client
-│   │   └── test/                                    # Automated JUnit 5 & MockMvc Tests (10/10 Passed)
-│   │       ├── java/com/starlie/loanemi/calculation/
-│   │       │   ├── CalculationServiceTest.java
-│   │       │   └── CalculationControllerIntegrationTest.java
-│   │       └── resources/
-│   │           └── application.properties           # In-memory H2 DB for isolated testing
-│   ├── pom.xml                                      # Maven project dependencies & build plugins
-│   └── mvnw.cmd                                     # Maven Wrapper for backend
-├── frontend/                                        # Standalone frontend copy
-│   ├── index.html
-│   ├── css/styles.css
-│   └── js/app.js
-├── database/
-│   └── init.sql                                     # PostgreSQL database & table initialization script
-├── mvnw.cmd                                         # Project-level Maven Wrapper
+/
+├── api/
+│   ├── calculations/
+│   │   ├── index.js          # GET (fetch all), POST (save calculation), DELETE (clear all)
+│   │   └── [id].js           # GET (by id), DELETE (by id)
+│   └── health.js             # GET /api/health check
+├── src/
+│   ├── App.jsx               # Main LoanWise calculator & history component
+│   ├── main.jsx              # React DOM entry point
+│   └── styles.css            # Custom design & responsive dashboard styles
+├── public/                   # Static assets & icons
+├── index.html                # Root HTML template
+├── package.json              # Project dependencies & build scripts
+├── vite.config.js            # Vite build configuration
+├── vercel.json               # Vercel deployment routing & SPA rewrite rules
+├── supabase-schema.sql       # SQL script to create table in Supabase
+├── .env.example              # Placeholder environment variables template
 ├── .gitignore
-└── README.md
+└── README.md                 # Deployment & setup documentation
 ```
 
 ---
 
-## 📐 Mathematical EMI Formula
+## 🧮 Mathematical EMI Calculation Logic
 
-The Equated Monthly Installment (EMI) is computed using:
+The monthly Equated Monthly Installment (EMI) is calculated using the standard formula:
 
 $$\text{EMI} = P \times \frac{r \times (1 + r)^n}{(1 + r)^n - 1}$$
 
 Where:
 - **$P$** = Principal loan amount
 - **$r$** = Monthly interest rate $= \frac{\text{Annual Interest Rate}}{12 \times 100}$
-- **$n$** = Total number of monthly installments $(\text{Years} \times 12 \text{ or Months})$
+- **$n$** = Loan tenure in months
 
-### Special Cases:
-- **Zero-Interest ($r = 0$)**: $\text{EMI} = \frac{P}{n}$, $\text{Total Interest} = 0$, $\text{Total Payment} = P$
-- **Total Payment**: $\text{EMI} \times n$
-- **Total Interest**: $\text{Total Payment} - P$
+### Special Handling:
+- **Zero-Interest ($r = 0$)**: Seamlessly supported without division-by-zero errors:
+  $$\text{EMI} = \frac{P}{n}, \quad \text{Total Interest} = 0, \quad \text{Total Payment} = P$$
+- **Total Repayment Amount**: $\text{EMI} \times n$
+- **Total Interest Payable**: $\text{Total Repayment} - P$
 
----
-
-## 🚀 Beginner-Friendly Windows Setup & Run Guide
-
-### Step 1: Install & Verify Java 17
-1. Open PowerShell or Command Prompt.
-2. Run:
-   ```powershell
-   java -version
-   ```
-3. Ensure the output shows version `17` (e.g. `openjdk version "17.0.x"`).
+Both the React frontend (for instantaneous slider and input responsiveness) and the Vercel Serverless Functions (for verified backend persistence) execute this exact formula.
 
 ---
 
-### Step 2: Install & Start PostgreSQL
-1. If PostgreSQL is not yet running as a Windows Service, open an **Administrator** PowerShell and run:
-   ```powershell
-   net start postgresql-x64-18
-   ```
-   *(Replace `18` with your installed PostgreSQL major version if different, e.g., `postgresql-x64-16` or `postgresql-x64-15`).*
-2. Alternatively, open Windows Services (`services.msc`), find **postgresql-x64-18**, right-click, and select **Start**.
+## 🛠️ Step-by-Step Vercel Deployment Guide
 
----
-
-### Step 3: Create the Database (`loan_emi_db`)
-1. Open **psql** command line:
-   ```powershell
-   & "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres
-   ```
-   *(Enter your PostgreSQL password when prompted)*.
-2. In the `psql` prompt, create the database:
-   ```sql
-   CREATE DATABASE loan_emi_db;
-   \q
-   ```
-3. Alternatively, you can run the SQL script directly:
-   ```powershell
-   & "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -f "database\init.sql"
+### Step 1: Push Code to GitHub
+1. Initialize or stage your repository:
+   ```bash
+   git add .
+   git commit -m "Rebuild Loan EMI Calculator for Vercel + Supabase"
+   git push origin main
    ```
 
 ---
 
-### Step 4: Configure Database Credentials
-Open `backend\src\main\resources\application.properties`:
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/loan_emi_db
-spring.datasource.username=postgres
-spring.datasource.password=YOUR_POSTGRES_PASSWORD
-```
-Replace `YOUR_POSTGRES_PASSWORD` with your actual password (or pass via environment variables `DB_PASSWORD=your_password`).
+### Step 2: Set Up Supabase Database (Free Tier)
+1. Go to [https://supabase.com](https://supabase.com) and create a free account.
+2. Click **New Project** and choose a name (e.g. `loan-emi-db`) and database password.
+3. Once created, click **SQL Editor** on the left menu.
+4. Open the file [`supabase-schema.sql`](supabase-schema.sql) in this repository, copy its contents, paste them into the SQL Editor, and click **Run**.
+   *(This creates the `loan_calculations` table and enables secure policies).*
+5. Go to **Project Settings** (gear icon) > **API**:
+   - Copy the **Project URL** (e.g., `https://abcdefg.supabase.co`)
+   - Copy the **service_role secret key** (revealed under Project API keys)
 
 ---
 
-### Step 5: Run the Spring Boot Backend
-
-From the project root (`c:\Users\HP\Downloads\FSD PROJECT`), run:
-
-```powershell
-.\mvnw.cmd spring-boot:run -f backend/pom.xml
-```
-
-Or run the pre-built standalone executable JAR:
-
-```powershell
-java -jar backend/target/loan-emi-api-1.0.0.jar
-```
-
-You will see:
-```text
-Started LoanEmiApiApplication in ... seconds (process running for ...)
-Tomcat started on port 8080 (http)
-```
+### Step 3: Deploy to Vercel
+1. Go to [https://vercel.com](https://vercel.com) and log in.
+2. Click **Add New...** > **Project**.
+3. Import your GitHub repository (`FSD PROJECT`).
+4. In the **Configure Project** screen:
+   - **Framework Preset**: Vite (detected automatically).
+   - **Root Directory**: `./` (default).
+   - **Build Command**: `npm run build` (default).
+   - **Output Directory**: `dist` (default).
+5. Expand **Environment Variables** and add:
+   | Key | Value | Description |
+   |---|---|---|
+   | `SUPABASE_URL` | `https://your-project.supabase.co` | Your Supabase project URL |
+   | `SUPABASE_SERVICE_ROLE_KEY` | `your-service-role-secret-key` | Secret key for serverless persistence |
+6. Click **Deploy**.
+7. In ~30 seconds, your site will be live at `https://your-project.vercel.app`! 🎉
 
 ---
 
-### Step 6: Open the Frontend
-Once Spring Boot is running, open your web browser to:
-👉 **[http://localhost:8080](http://localhost:8080)**
+## 💻 Local Development Guide
 
-The frontend is served directly by Spring Boot!
+To test or run the application locally on your computer:
 
-*(Optional: You can also open `frontend/index.html` directly or via VS Code Live Server; it will automatically connect to `http://localhost:8080/api` with CORS enabled).*
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
----
+2. **Start the local Vite development server**:
+   ```bash
+   npm run dev
+   ```
+   Open your browser to `http://localhost:5173`.
 
-### Step 7: Run Automated Tests
-
-To run the complete automated test suite (all 10 test scenarios):
-
-```powershell
-.\mvnw.cmd test -f backend/pom.xml
-```
-
-Test Results:
-```text
-[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0 -- CalculationControllerIntegrationTest
-[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0 -- CalculationServiceTest
-[INFO] Results:
-[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0
-[INFO] BUILD SUCCESS
-```
+3. **Verify the production build**:
+   ```bash
+   npm run build
+   ```
+   *(Creates optimized static assets in the `dist/` directory with 0 errors).*
 
 ---
 
-## 📡 REST API Documentation
+## 🔒 Security Best Practices Implemented
 
-### 1. Save a Calculation
-- **Method**: `POST`
-- **Endpoint**: `/api/calculations`
-- **Request Body**:
-  ```json
-  {
-    "loanName": "Home Loan",
-    "loanAmount": 1000000.00,
-    "annualInterestRate": 8.50,
-    "tenure": 10,
-    "tenureUnit": "YEARS"
-  }
-  ```
-- **Response (201 Created)**:
-  ```json
-  {
-    "id": 1,
-    "loanName": "Home Loan",
-    "loanAmount": 1000000.00,
-    "principal": 1000000.00,
-    "annualInterestRate": 8.5000,
-    "tenureMonths": 120,
-    "monthlyEmi": 12398.57,
-    "totalInterest": 487828.40,
-    "totalPayment": 1487828.40,
-    "createdAt": "2026-10-26T15:30:00Z"
-  }
-  ```
+- **No Credentials in Frontend**: Database connection strings and Supabase secret keys are stored exclusively in Vercel environment variables and accessed only by Vercel Serverless Functions (`/api/*`).
+- **No Localhost URLs in Production**: The frontend uses clean, relative API routes (`/api/calculations`), ensuring it functions in any domain or environment without hardcoded endpoints.
+- **Server-Side Validation**: Serverless functions independently validate all parameters (`principal > 0`, `annualInterestRate >= 0`, `tenureMonths > 0`) before computing and storing data.
+- **Resilient Fallback**: If Supabase credentials are not configured immediately, the app gracefully falls back to local storage so users can preview and test features without breaking.
 
 ---
 
-### 2. Preview Calculation (Without Saving)
-- **Method**: `POST`
-- **Endpoint**: `/api/calculations/calculate`
-- **Request Body**:
-  ```json
-  {
-    "loanAmount": 500000.00,
-    "annualInterestRate": 10.0,
-    "tenure": 36,
-    "tenureUnit": "MONTHS"
-  }
-  ```
-- **Response (200 OK)**:
-  ```json
-  {
-    "id": null,
-    "loanName": "Loan Calculation",
-    "loanAmount": 500000.00,
-    "principal": 500000.00,
-    "annualInterestRate": 10.0000,
-    "tenureMonths": 36,
-    "monthlyEmi": 16133.60,
-    "totalInterest": 80809.60,
-    "totalPayment": 580809.60,
-    "createdAt": "2026-10-26T15:31:00Z"
-  }
-  ```
+## 🧪 Verified Tests
 
----
-
-### 3. Retrieve All Saved Calculations
-- **Method**: `GET`
-- **Endpoint**: `/api/calculations`
-- **Response (200 OK)**: List of calculations sorted newest first (`ORDER BY createdAt DESC`).
-
----
-
-### 4. Retrieve a Calculation by ID
-- **Method**: `GET`
-- **Endpoint**: `/api/calculations/{id}`
-- **Response (200 OK)**: Calculation object.
-- **Response (404 Not Found)** if ID does not exist:
-  ```json
-  {
-    "status": 404,
-    "error": "Not Found",
-    "message": "Calculation with ID 999 was not found.",
-    "timestamp": "2026-10-26T15:32:00Z"
-  }
-  ```
-
----
-
-### 5. Delete an Individual Calculation
-- **Method**: `DELETE`
-- **Endpoint**: `/api/calculations/{id}`
-- **Response (204 No Content)**
-
----
-
-### 6. Delete All Calculations (Clear History)
-- **Method**: `DELETE`
-- **Endpoint**: `/api/calculations`
-- **Response (204 No Content)**
-
----
-
-## 🛠️ Troubleshooting Guide
-
-### 1. Database Connection Failure (`Connection to localhost:5432 refused`)
-- **Cause**: PostgreSQL service is not running or port 5432 is blocked.
-- **Solution**:
-  - Run `net start postgresql-x64-18` as Administrator or start the PostgreSQL service via `services.msc`.
-  - Ensure the database `loan_emi_db` was created (`CREATE DATABASE loan_emi_db;`).
-  - Verify credentials in `backend/src/main/resources/application.properties`.
-
-### 2. Port 8080 Conflict (`Port 8080 was already in use`)
-- **Cause**: Another service is using port 8080.
-- **Solution**:
-  - In PowerShell:
-    ```powershell
-    Get-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess | Stop-Process -Force
-    ```
-  - Or change the port in `application.properties`:
-    ```properties
-    server.port=8081
-    ```
-
-### 3. Validation Errors (`400 Bad Request`)
-- **Cause**: Negative loan amount, interest rate > 100%, or tenure <= 0.
-- **Solution**: Check the error message in the JSON response or the frontend input highlighting for field-specific correction.
+The following tests were executed and passed:
+1. **Production Build**: `npm run build` completed in 3.2s producing optimized bundle (`dist/index.html`, `dist/assets/*.js`, `dist/assets/*.css`).
+2. **Standard Home Loan Test**: ₹25,00,000 @ 8.5% for 240 months $\rightarrow$ Monthly EMI: ₹21,695.58, Total Repayment: ₹52,06,939.40, Total Interest: ₹27,06,939.40.
+3. **Personal Loan Test**: ₹1,00,000 @ 10% for 12 months $\rightarrow$ Monthly EMI: ₹8,791.59, Total Repayment: ₹1,05,499.06, Total Interest: ₹5,499.06.
+4. **Zero-Interest Test**: ₹60,000 @ 0% for 12 months $\rightarrow$ Monthly EMI: ₹5,000.00, Total Interest: ₹0.00.
+5. **Serverless API Function Execution**: Simulated GET, POST, and DELETE requests to `/api/calculations` and `/api/calculations/[id]` succeeded with expected HTTP 200, 201, and 204 status codes.

@@ -1,42 +1,24 @@
-# Java / Maven
-backend/target/
-target/
-*.class
-*.log
-*.jar
-apache-maven-*.zip
-maven.zip
-pgdata/
+# Dependency & Build directories
+node_modules
+dist
+dist-ssr
 
-# Node
-frontend/node_modules/
-frontend/dist/
-
-# Local environment variables
-.env
-.env.*
-!.env.example
-
-# IDE & OS
-.idea/
-.vscode/
-*.iml
-.DS_Store
-Thumbs.db
-# Maven build files
-**/target/
-
-# Local IDE files
-.idea/
-.vscode/
-
-# Environment variables and secrets
+# Environment files
 .env
 .env.*
 !.env.example
 
 # Logs
-error-log.txt
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
 
-# Downloaded Maven installation
-apache-maven-3.9.6/
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
